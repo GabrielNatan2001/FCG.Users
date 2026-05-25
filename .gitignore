@@ -1,0 +1,66 @@
+# Build results
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# Publish output
+publish/
+
+# Logs
+*.log
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+
+# NuGet
+*.nupkg
+packages/
+**/packages/*
+
+# Local tools
+.toolstargets/
+.dotnet/
+
+# Entity Framework Core
+Migrations/*Designer.cs
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# Environment files
+.env
+
+# Test results
+TestResults/
+*.trx
+
+# Coverage reports
+coverage/
+coverage-report/
+
+# Secrets (dotnet user-secrets)
+secrets.json
+
+# Node (caso tenha frontend)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+/fluxos
