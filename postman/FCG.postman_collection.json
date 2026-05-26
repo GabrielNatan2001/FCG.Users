@@ -1,0 +1,325 @@
+﻿{
+  "info": {
+    "name": "FCG - Tech Challenge Fase 2",
+    "description": "Collection para testar os microsserviços FCG (Users, Catalog, Payments, Notifications).\n\nFluxos:\n1. Auth admin → token salvo em {{adminToken}}\n2. Criar usuário comum → dispara UserCreatedEvent (Notifications loga e-mail)\n3. Login do usuário comum → token salvo em {{userToken}}\n4. Admin cria/lista jogos\n5. Usuário compra jogo → dispara OrderPlacedEvent → Payments processa e publica PaymentProcessedEvent → Catalog adiciona à biblioteca + Notifications envia confirmação\n6. Usuário lista sua biblioteca",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Setup - Admin",
+      "item": [
+        {
+          "name": "Login Admin (seed: admin@admin.com / Teste@123)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Possui accessToken', () => pm.expect(json.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('adminToken', json.accessToken);",
+                  "console.log('Admin token armazenado.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@admin.com\",\n  \"senha\": \"Teste@123\"\n}"
+            },
+            "url": {
+              "raw": "{{usersBaseUrl}}/api/auth/login",
+              "host": ["{{usersBaseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Fluxo de cadastro de usuário",
+      "item": [
+        {
+          "name": "Criar Usuário (publica UserCreatedEvent)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now();",
+                  "pm.collectionVariables.set('userEmail', `user_${suffix}@fcg.com`);",
+                  "pm.collectionVariables.set('userSenha', 'Teste@123');",
+                  "pm.collectionVariables.set('userNome', `User ${suffix}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Retornou Id', () => pm.expect(json.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('userId', json.id);",
+                  "console.log('Usuário criado. Cheque o log do Notifications.Worker → [EMAIL] Boas-vindas...');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"{{userNome}}\",\n  \"email\": \"{{userEmail}}\",\n  \"senha\": \"{{userSenha}}\"\n}"
+            },
+            "url": {
+              "raw": "{{usersBaseUrl}}/api/usuario",
+              "host": ["{{usersBaseUrl}}"],
+              "path": ["api", "usuario"]
+            }
+          }
+        },
+        {
+          "name": "Login do Usuário recém-criado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Possui accessToken', () => pm.expect(json.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('userToken', json.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"senha\": \"{{userSenha}}\"\n}"
+            },
+            "url": {
+              "raw": "{{usersBaseUrl}}/api/auth/login",
+              "host": ["{{usersBaseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catálogo (Admin)",
+      "item": [
+        {
+          "name": "Listar Jogos (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/jogo",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "jogo"]
+            }
+          }
+        },
+        {
+          "name": "Criar Jogo (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Retornou Id', () => pm.expect(json.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('jogoId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Stellar Odyssey\",\n  \"descricao\": \"RPG espacial cooperativo.\",\n  \"preco\": 79.90,\n  \"categoria\": \"RPG\"\n}"
+            },
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/jogo",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "jogo"]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Jogo (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Stellar Odyssey Deluxe\",\n  \"descricao\": \"RPG espacial cooperativo - edição completa.\",\n  \"preco\": 99.90,\n  \"categoria\": \"RPG\"\n}"
+            },
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/jogo/{{jogoId}}",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "jogo", "{{jogoId}}"]
+            }
+          }
+        },
+        {
+          "name": "Alterar Status Jogo (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/jogo/{{jogoId}}/status",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "jogo", "{{jogoId}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Catálogo (Usuário comum)",
+      "item": [
+        {
+          "name": "Listar Jogos Ativos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "  pm.collectionVariables.set('jogoId', json[0].id);",
+                  "  console.log('jogoId definido a partir do primeiro ativo:', json[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/jogo/ativos",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "jogo", "ativos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Fluxo de compra (mensageria)",
+      "item": [
+        {
+          "name": "Comprar Jogo (publica OrderPlacedEvent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 202', () => pm.response.to.have.status(202));",
+                  "pm.test('Retornou orderId', () => pm.expect(json.orderId).to.be.a('string'));",
+                  "pm.collectionVariables.set('orderId', json.orderId);",
+                  "console.log('Pedido criado. Em poucos segundos:');",
+                  "console.log(' 1) Payments.Worker consome OrderPlacedEvent e publica PaymentProcessedEvent (2x)');",
+                  "console.log(' 2) Catalog (PaymentProcessedWorker) adiciona o jogo à biblioteca');",
+                  "console.log(' 3) Notifications.Worker loga [EMAIL] Confirmação de compra');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/biblioteca/{{jogoId}}/comprar",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "biblioteca", "{{jogoId}}", "comprar"]
+            }
+          }
+        },
+        {
+          "name": "Listar Biblioteca do Usuário",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "console.log('Biblioteca:', JSON.stringify(json));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{catalogBaseUrl}}/api/biblioteca",
+              "host": ["{{catalogBaseUrl}}"],
+              "path": ["api", "biblioteca"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "usersBaseUrl", "value": "http://localhost:5001" },
+    { "key": "catalogBaseUrl", "value": "http://localhost:5002" },
+    { "key": "adminToken", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "userEmail", "value": "" },
+    { "key": "userSenha", "value": "" },
+    { "key": "userNome", "value": "" },
+    { "key": "jogoId", "value": "" },
+    { "key": "orderId", "value": "" }
+  ]
+}
