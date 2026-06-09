@@ -1,4 +1,4 @@
-using FCG.Users.API.Middlewares;
+﻿using FCG.Users.API.Middlewares;
 using FCG.Users.API.Services;
 using FCG.Users.Application;
 using FCG.Users.Application.Abstractions.Security;
@@ -17,6 +17,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecksInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddScoped<ITokenProvider, JwtTokenProvider>();
 
@@ -31,6 +32,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
+app.MapHealthChecks("/health");
 app.MapControllers();
 app.Run();
 
