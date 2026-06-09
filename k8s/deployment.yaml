@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fcg-users-api
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: fcg-users-api
+
+  template:
+    metadata:
+      labels:
+        app: fcg-users-api
+
+    spec:
+      containers:
+        - name: fcg-users-api
+          image: GabrielNatan2001/fcg-users-api:latest
+
+          ports:
+            - containerPort: 8080
+
+          envFrom:
+          - configMapRef:
+              name: fcg-users-api-config
+
+          - secretRef:
+              name: fcg-users-api-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3

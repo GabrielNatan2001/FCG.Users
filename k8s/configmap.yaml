@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fcg-users-api-config
+data:
+  ASPNETCORE_ENVIRONMENT: Development
+  Jwt__Issuer: FCG.Users.API
+  Jwt__Audience: FC.Client
+  MessageBusConfigs__RetryCount: "5"
+  Publishers__UserCreated__Exchange: fcg.user.created
+  Publishers__UserCreated__RoutingKey: notifications.user-created
