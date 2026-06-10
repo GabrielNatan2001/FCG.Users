@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: fcg-users-api
-          image: GabrielNatan2001/fcg-users-api:latest
+          image: gabrielnatan2001/fcg-api-users:latest
 
           ports:
             - containerPort: 8080
