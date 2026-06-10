@@ -5,7 +5,7 @@ metadata:
 data:
   ASPNETCORE_ENVIRONMENT: Development
   Jwt__Issuer: FCG.Users.API
-  Jwt__Audience: FC.Client
+  Jwt__Audience: FCG.Client
   MessageBusConfigs__RetryCount: "5"
   Publishers__UserCreated__Exchange: fcg.user.created
   Publishers__UserCreated__RoutingKey: notifications.user-created
