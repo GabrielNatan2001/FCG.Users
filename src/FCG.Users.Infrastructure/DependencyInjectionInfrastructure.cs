@@ -22,6 +22,7 @@ public static class DependencyInjectionInfrastructure
             configuration.GetSection("Publishers:UserCreated"));
 
         services.AddSingleton<IMessageBus, MessageBus>();
+        services.AddRabbitMqTopologyInitializer(configuration);
 
         return services;
     }

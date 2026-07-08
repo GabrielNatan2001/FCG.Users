@@ -74,6 +74,15 @@ public class MessageBus : IMessageBus
         }
     }
 
+    public void EnsureTopology(string exchange, string routingKey)
+    {
+        using var channel = connection.CreateModel();
+        DeclareQueueAndBind(routingKey, exchange, channel);
+        _logger.LogInformation(
+            "[TOPOLOGY] - Exchange: {Exchange}-exchange | Queue: {RoutingKey}-queue | RoutingKey: {RoutingKey}",
+            exchange, routingKey, routingKey);
+    }
+
     private void DeclareExchange(string exchangeName, IModel channel)
     {
         if (_exchange.ContainsKey(exchangeName)) return;

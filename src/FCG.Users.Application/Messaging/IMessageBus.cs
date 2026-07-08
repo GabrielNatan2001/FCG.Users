@@ -4,6 +4,8 @@ public interface IMessageBus : IDisposable
 {
     void Connect();
 
+    void EnsureTopology(string exchange, string routingKey);
+
     void Publish(string exchange, string routingKey, dynamic command);
 
     Task Subscribe<TMessage>(
