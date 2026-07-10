@@ -5,4 +5,8 @@
     <Project Path="src/FCG.Users.Domain/FCG.Users.Domain.csproj" />
     <Project Path="src/FCG.Users.Infrastructure/FCG.Users.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FCG.Users.Application.Tests/FCG.Users.Application.Tests.csproj" />
+    <Project Path="tests/FCG.Users.Domain.Tests/FCG.Users.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
