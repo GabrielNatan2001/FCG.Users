@@ -6,6 +6,7 @@ using FCG.Users.Domain.Usuario.Entities;
 using FCG.Users.Infrastructure;
 using FCG.Users.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +33,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
+app.UseHttpMetrics();
 app.MapHealthChecks("/health");
+app.MapMetrics();
 app.MapControllers();
 app.Run();
 
