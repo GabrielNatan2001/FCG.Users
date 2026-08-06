@@ -1,6 +1,6 @@
 ﻿# FCG.Users
 
-Microsserviço responsável pelo **cadastro de usuários** e **autenticação JWT**. Após criar um usuário, publica o evento `UserCreatedEvent` no RabbitMQ para a **Azure Function** de notificações. Expõe métricas Prometheus em `/metrics` e envia **traces/logs** via OpenTelemetry (OTLP) para o collector (Tempo + Loki).
+Microsserviço responsável pelo **cadastro de usuários** e **autenticação JWT**. Após criar um usuário, publica o evento `UserCreatedEvent` no RabbitMQ para a **Azure Function** de notificações. Expõe métricas Prometheus em `/metrics`.
 
 ## Projetos
 

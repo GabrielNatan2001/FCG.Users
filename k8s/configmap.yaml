@@ -7,6 +7,3 @@ data:
   MessageBusConfigs__RetryCount: "5"
   Publishers__UserCreated__Exchange: fcg.user.created
   Publishers__UserCreated__RoutingKey: notifications.user-created
-  OTEL_SERVICE_NAME: fcg-users-api
-  OTEL_EXPORTER_OTLP_ENDPOINT: http://fcg-otel-collector:4317
-  OTEL_EXPORTER_OTLP_PROTOCOL: grpc

@@ -1,5 +1,4 @@
 ﻿using FCG.Users.API.Middlewares;
-using FCG.Users.API.Observability;
 using FCG.Users.API.Services;
 using FCG.Users.Application;
 using FCG.Users.Application.Abstractions.Security;
@@ -10,8 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.AddFcgOpenTelemetry("fcg-users-api");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
