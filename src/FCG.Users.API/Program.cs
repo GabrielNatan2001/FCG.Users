@@ -1,4 +1,5 @@
-﻿using FCG.Users.API.Middlewares;
+﻿using FCG.Users.API.Filters;
+using FCG.Users.API.Middlewares;
 using FCG.Users.API.Services;
 using FCG.Users.Application;
 using FCG.Users.Application.Abstractions.Security;
@@ -10,7 +11,10 @@ using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<DomainExceptionFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
