@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: fcg-users-api
-          image: gabrielnatan2001/fcg-api-users:latest
+          image: fcgacrgabrielnatan.azurecr.io/fcg-api-users:latest
           imagePullPolicy: Always
 
           ports:
