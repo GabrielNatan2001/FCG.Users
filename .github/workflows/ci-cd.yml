@@ -11,66 +11,111 @@ env:
   CONTAINER_NAME: fcg-users-api
 
 jobs:
-  build-test-deploy:
+  pipeline:
+    name: "Users → Build → ACR → AKS"
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Checkout
+      - name: "01 · Checkout do código"
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: "02 · Setup .NET 8"
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
-      - name: Restore
-        run: dotnet restore FCG.Users.slnx
+      - name: "03 · Restore pacotes NuGet"
+        run: |
+          echo "::group::dotnet restore"
+          dotnet restore FCG.Users.slnx
+          echo "::endgroup::"
+          echo "✅ Restore concluído" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Build
-        run: dotnet build FCG.Users.slnx --configuration Release --no-restore
+      - name: "04 · Build (Release)"
+        run: |
+          echo "::group::dotnet build"
+          dotnet build FCG.Users.slnx --configuration Release --no-restore
+          echo "::endgroup::"
+          echo "✅ Build Release OK" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Test
-        run: dotnet test FCG.Users.slnx --configuration Release --no-build --verbosity normal
+      - name: "05 · Testes unitários"
+        run: |
+          echo "::group::dotnet test"
+          dotnet test FCG.Users.slnx --configuration Release --no-build --verbosity normal
+          echo "::endgroup::"
+          echo "✅ Testes passaram" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Azure Login
+      - name: "06 · Login na Azure"
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login to ACR
+      - name: "07 · Login no ACR (registry privado)"
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.ACR_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build & Push Docker image
+      - name: "08 · Build & Push imagem Docker no ACR"
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}
+          echo "📦 Gerando imagem: $IMAGE:${{ github.sha }}"
           docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
+          echo "✅ Imagem publicada no ACR" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$IMAGE:${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$IMAGE:latest\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Security scan (Trivy)
+      - name: "09 · Security scan (Trivy) — desejável"
         continue-on-error: true
         run: |
+          echo "🔍 Escaneando vulnerabilidades CRITICAL/HIGH..."
           docker run --rm aquasec/trivy:latest image \
             --severity CRITICAL,HIGH \
             --exit-code 0 \
             ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          echo "✅ Scan Trivy executado (não bloqueia o deploy)" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Get AKS credentials
+      - name: "10 · Conectar no cluster AKS"
         run: |
+          echo "☸️  Obtendo credenciais do AKS ${{ secrets.AKS_CLUSTER_NAME }}..."
           az aks get-credentials \
             --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
             --name ${{ secrets.AKS_CLUSTER_NAME }} \
             --overwrite-existing
+          kubectl get nodes
+          echo "✅ Conectado ao AKS" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Deploy Rolling Update
+      - name: "11 · Deploy Rolling Update no AKS"
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          echo "🚀 Atualizando deployment/${{ env.DEPLOYMENT_NAME }} → $IMAGE"
           kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
             ${{ env.CONTAINER_NAME }}=$IMAGE
+          echo "⏳ Aguardando Rolling Update sem downtime..."
           kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} --timeout=180s
+          kubectl get pods -l app=${{ env.DEPLOYMENT_NAME }} -o wide
+          echo "✅ Deploy no AKS concluído (Rolling Update)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Deployment: \`${{ env.DEPLOYMENT_NAME }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Imagem: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "12 · Resumo final"
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "## Pipeline Users API"
+            echo "| Etapa | Status |"
+            echo "|---|---|"
+            echo "| 01 Checkout | ✅ |"
+            echo "| 02-05 Build/Test | ver steps acima |"
+            echo "| 08 Push ACR | ver steps acima |"
+            echo "| 11 Deploy AKS | ver steps acima |"
+            echo ""
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Branch:** \`${{ github.ref_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
