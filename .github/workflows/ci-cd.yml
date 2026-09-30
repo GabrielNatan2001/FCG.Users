@@ -54,13 +54,12 @@ jobs:
           docker push $IMAGE:latest
 
       - name: Security scan (Trivy)
-        uses: aquasecurity/trivy-action@v0.28.0
         continue-on-error: true
-        with:
-          image-ref: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: table
-          exit-code: "0"
-          severity: CRITICAL,HIGH
+        run: |
+          docker run --rm aquasec/trivy:latest image \
+            --severity CRITICAL,HIGH \
+            --exit-code 0 \
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Get AKS credentials
         run: |
